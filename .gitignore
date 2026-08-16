@@ -1,0 +1,42 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Secrets
+.env
+.env.local
+
+# Private / biometric data
+data/private/
+data/registered/
+data/test_images/
+
+# Generated data
+data/gallery_cache.npz
+data/test_videos/cctv_annotated_feed.mp4
+data/test_videos/dashboard_annotated_feed.mp4
+data/test_videos/test_annotated_feed.mp4
+data/test_videos/*_match_report.json
+data/test_videos/detected_crops/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
