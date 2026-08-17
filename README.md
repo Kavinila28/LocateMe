@@ -1,206 +1,481 @@
-# LocateMe — Real-Time Missing Person Detection in Public Feeds
+# LocateMe — AI-Assisted Missing Person Screening
 
-> **Controlled Prototype Notice**: LocateMe is an AI-assisted research and hackathon prototype designed strictly for evaluation on authorized, consenting benchmark datasets and sample video feeds. It is **not** an unrestricted public surveillance system.
+LocateMe is an AI-assisted missing-person screening platform designed to help authorized operators compare faces from photographs and surveillance footage against a registered reference gallery.
 
----
+The system combines **MTCNN face detection**, **InceptionResnetV1 facial embeddings**, **cosine similarity**, a **FastAPI backend**, a **Streamlit operator dashboard**, and **Supabase-backed storage** to provide an end-to-end prototype for controlled missing-person search assistance.
 
-## 1. Project Objective
-
-LocateMe accelerates missing-person search and rescue operations by automatically screening video frames, CCTV feeds, and test images against registered missing-person reference galleries. When potential matches are detected, the system produces actionable candidate alerts with similarity confidence metrics and detection metadata for human operator verification.
+> **Important:** LocateMe is a controlled prototype and human-in-the-loop screening system. Similarity scores indicate algorithmic feature proximity and do **not** constitute positive identification.
 
 ---
 
-## 2. Complete Architecture & Tech Stack
+## 🚀 Live Demo
 
+### Dashboard
+
+**https://locateme-dashboard.onrender.com**
+
+### Backend API
+
+**https://locateme-x7h2.onrender.com**
+
+### API Documentation
+
+**https://locateme-x7h2.onrender.com/docs**
+
+---
+
+## ✨ Key Features
+
+* 🗂️ **Missing Persons Gallery**
+
+  * Register reference photographs
+  * Maintain a searchable gallery of registered individuals
+  * Precompute facial embeddings for faster screening
+
+* 📸 **Photo & Snapshot Screening**
+
+  * Upload a surveillance photograph
+  * Detect one or multiple faces
+  * Generate 512-dimensional facial embeddings
+  * Compare detected faces against the registered gallery
+  * Display similarity scores and confidence tiers
+
+* 📹 **CCTV Video Analysis**
+
+  * Upload recorded surveillance footage
+  * Sample video frames for processing
+  * Detect faces throughout the video
+  * Compare detected faces against registered candidates
+  * Generate an annotated surveillance video
+  * Produce a downloadable JSON screening report
+  * Display a detection timeline
+
+* ⚙️ **Configurable Screening**
+
+  * Adjustable cosine similarity threshold
+  * Configurable video frame sampling rate
+  * Device and gallery status monitoring
+
+* ☁️ **Cloud-Ready Architecture**
+
+  * FastAPI REST backend
+  * Streamlit dashboard
+  * Supabase integration
+  * Render deployment
+
+* 🔐 **Ethical Boundaries**
+
+  * Human-in-the-loop workflow
+  * Designed for authorized missing-person operations
+  * No claim of definitive biometric identification
+
+---
+
+## 🧠 AI / ML Pipeline
+
+LocateMe uses the following processing pipeline:
+
+```text
+Input Image / Video
+        │
+        ▼
+   Face Detection
+      MTCNN
+        │
+        ▼
+ Face Alignment & Crop
+        │
+        ▼
+InceptionResnetV1
+   VGGFace2 Weights
+        │
+        ▼
+512-D Face Embedding
+        │
+        ▼
+Cosine Similarity
+        │
+        ▼
+Registered Gallery
+        │
+        ▼
+Candidate Screening Result
 ```
-┌────────────────────────────────────────────────────────┐
-│     Registered Missing Person Gallery (data/registered)│
-└───────────────────────────┬────────────────────────────┘
-                            │ (Offline Precomputation)
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│     512-D Embedding Matrix Cache (gallery_cache.npz)   │
-└───────────────────────────┬────────────────────────────┘
-                            │
-┌───────────────────────────┴────────────────────────────┐
-│                  VIDEO / CCTV INGESTION                │
-│    (MP4, AVI, RTSP Stream, or Live Webcam Feed)        │
-└───────────────────────────┬────────────────────────────┘
-                            │ (Configurable Frame Sampling: e.g., 5 frames)
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│           MTCNN Multi-Face Detection & Alignment       │
-│                (Crop & Scale to 160x160)               │
-└───────────────────────────┬────────────────────────────┘
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│        InceptionResnetV1 Feature Extractor             │
-│            (Pretrained on VGGFace2)                    │
-│            Output: Unit-Norm 512-D Vector              │
-└───────────────────────────┬────────────────────────────┘
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│        Fast Vectorized 1-to-N Gallery Screening        │
-│          Cosine Similarity: S = G · q / ||q||          │
-└───────────────────────────┬────────────────────────────┘
-                            │
-              ┌─────────────┴─────────────┐
-              ▼                           ▼
-┌───────────────────────────┐   ┌────────────────────────┐
-│ Similarity >= Threshold   │   │ Similarity < Threshold │
-│ (Default: 0.68)           │   │                        │
-│ [POTENTIAL MATCH]         │   │ [UNRECOGNIZED FACE]    │
-│ • Green Bounding Box      │   │ • Gray Bounding Box    │
-│ • Log Match Event + Crop  │   │ • Background Tracking  │
-└─────────────┬─────────────┘   └────────────────────────┘
-              │
-              ▼
-┌────────────────────────────────────────────────────────┐
-│   OPERATOR INTERFACES & SERVING LAYERS                 │
-│   • Streamlit Web Dashboard  (app/dashboard.py)        │
-│   • FastAPI REST Backend API (api/main.py)             │
-│   • Video Screening CLI      (process_video.py)        │
-│   • Pairwise Image CLI       (run_demo.py)             │
-└────────────────────────────────────────────────────────┘
+
+### Face Detection
+
+**MTCNN (Multi-task Cascaded Convolutional Networks)** is used to locate and align faces before feature extraction.
+
+### Face Embeddings
+
+**InceptionResnetV1**, pretrained on **VGGFace2**, generates normalized **512-dimensional facial embeddings**.
+
+### Similarity Measurement
+
+Candidate comparison uses cosine similarity:
+
+```text
+Cosine Similarity(u, v)
+        = (u · v) / (||u|| ||v||)
+```
+
+The gallery embeddings are stored in a matrix and compared against the query embedding using vectorized operations.
+
+---
+
+## 📊 Screening Thresholds
+
+The dashboard provides configurable similarity thresholds.
+
+| Similarity    | Interpretation                                |
+| ------------- | --------------------------------------------- |
+| `0.85 – 1.00` | High-confidence candidate                     |
+| `0.68 – 0.84` | Moderate candidate — human review recommended |
+| `0.55 – 0.67` | Borderline candidate                          |
+| `< 0.55`      | Non-matching individual                       |
+
+These thresholds are intended for controlled evaluation and should not be interpreted as proof of identity.
+
+---
+
+## 🏗️ System Architecture
+
+```text
+                         ┌─────────────────────────┐
+                         │   LocateMe Dashboard    │
+                         │       Streamlit         │
+                         │                         │
+                         │ • Gallery               │
+                         │ • Photo Screening       │
+                         │ • CCTV Analysis         │
+                         │ • Technical/Ethics      │
+                         └────────────┬────────────┘
+                                      │
+                                      ▼
+                         ┌─────────────────────────┐
+                         │      FastAPI API        │
+                         │                         │
+                         │ • REST Endpoints        │
+                         │ • Gallery Operations    │
+                         │ • Health Monitoring     │
+                         └────────────┬────────────┘
+                                      │
+                    ┌─────────────────┴─────────────────┐
+                    ▼                                   ▼
+          ┌────────────────────┐             ┌────────────────────┐
+          │     ML Pipeline    │             │      Supabase      │
+          │                    │             │                    │
+          │ MTCNN              │             │ Database           │
+          │ InceptionResnetV1  │             │ Storage            │
+          │ Embeddings         │             │ pgvector           │
+          │ Matching           │             │                    │
+          └────────────────────┘             └────────────────────┘
 ```
 
 ---
 
-## 3. Directory Structure
+## 📁 Project Structure
 
-```
+```text
 LocateMe/
+│
 ├── api/
-│   ├── __init__.py          # FastAPI package init
-│   ├── main.py              # REST API endpoints & static file mounts
-│   └── schemas.py           # Pydantic request/response schemas
+│   └── main.py
+│
 ├── app/
-│   └── dashboard.py         # Streamlit Operator & Hackathon Dashboard
+│   └── dashboard.py
+│
 ├── ml/
-│   ├── __init__.py          # Core package exports
-│   ├── face_detector.py     # MTCNN face detection & multi-face alignment
-│   ├── embedding.py         # InceptionResnetV1 512-D embedding extraction
-│   ├── matcher.py           # Cosine similarity & threshold screening
-│   ├── gallery.py           # Gallery caching & vectorized 1-to-N search
-│   └── video_processor.py   # Video frame decoding, annotation & event logging
+│   ├── embedding.py
+│   ├── face_detector.py
+│   ├── gallery.py
+│   ├── matcher.py
+│   └── video_processor.py
+│
 ├── data/
-│   ├── registered/          # Reference missing person photos
-│   │   ├── person_a_ref.jpg
-│   │   └── person_b_ref.jpg
-│   ├── test_images/         # Query test photos & static CCTV frames
-│   ├── test_videos/         # Benchmark video clips & screening outputs
-│   │   ├── sample_cctv_feed.mp4
-│   │   ├── cctv_annotated_feed.mp4
-│   │   ├── cctv_match_report.json
-│   │   └── detected_crops/  # Cropped candidate sightings
-│   └── gallery_cache.npz    # Precomputed gallery embeddings cache
+│   ├── registered/
+│   ├── test_images/
+│   └── test_videos/
+│
+├── supabase/
+│
 ├── tests/
-│   ├── test_pipeline.py       # Phase 1 unit & pipeline tests
-│   ├── test_video_pipeline.py # Phase 2 video & gallery test suite
-│   └── test_api.py            # Phase 3 FastAPI endpoint test suite
-├── run_demo.py              # CLI tool for pairwise image comparison
-├── process_video.py         # CLI tool for CCTV/video feed screening
-├── requirements.txt         # Pinned reproducible python dependencies
-├── .env.example             # Environment variable configuration template
-├── .gitignore               # Ignored cache, secrets, and environments
-└── README.md                # Project documentation
+│
+├── process_video.py
+├── run_demo.py
+├── requirements.txt
+├── runtime.txt
+├── .env.example
+├── .gitignore
+└── README.md
 ```
 
 ---
 
-## 4. Installation & Setup
+## 🛠️ Technology Stack
 
-### Prerequisites
-- Python 3.10, 3.11, or 3.12
-- Windows, Linux, or macOS
+### Frontend / Dashboard
 
-### Step 1: Navigate to Project
+* Python
+* Streamlit
+
+### Backend
+
+* FastAPI
+* Uvicorn
+
+### Machine Learning
+
+* PyTorch
+* torchvision
+* facenet-pytorch
+* MTCNN
+* InceptionResnetV1
+* OpenCV
+* NumPy
+* Pillow
+
+### Data / Cloud
+
+* Supabase
+* PostgreSQL
+* pgvector
+
+### Deployment
+
+* Render
+
+### Testing
+
+* Pytest
+
+---
+
+## ⚙️ Local Installation
+
+### 1. Clone the repository
+
 ```bash
+git clone https://github.com/Kavinila28/LocateMe.git
 cd LocateMe
 ```
 
-### Step 2: Create and Activate Virtual Environment
-**On Windows (PowerShell):**
+### 2. Create a virtual environment
+
+Windows:
+
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 ```
 
-**On Linux / macOS:**
+Linux / macOS:
+
 ```bash
-python3 -m venv .venv
+python -m venv .venv
 source .venv/bin/activate
 ```
 
-### Step 3: Install Dependencies
+### 3. Install dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
+### 4. Configure environment variables
+
+Create a `.env` file based on `.env.example`.
+
+```env
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
+```
+
+Do **not** commit `.env` or any secret credentials to GitHub.
+
 ---
 
-## 5. Running Automated Tests
+## ▶️ Running the Application
 
-Run the entire automated test suite with `pytest`:
+### Start the FastAPI backend
+
 ```bash
-pytest tests/ -v
+uvicorn api.main:app --reload
 ```
 
-Expected output:
-```
-tests/test_api.py::test_health_endpoint PASSED                           [  8%]
-tests/test_api.py::test_list_gallery_endpoint PASSED                     [ 16%]
-tests/test_api.py::test_screen_image_endpoint PASSED                     [ 25%]
-tests/test_api.py::test_screen_image_blank PASSED                        [ 33%]
-tests/test_pipeline.py::test_face_detector_invalid_input PASSED          [ 41%]
-tests/test_pipeline.py::test_face_detector_no_face PASSED                [ 50%]
-tests/test_pipeline.py::test_embedding_dimensions_and_norm PASSED        [ 58%]
-tests/test_pipeline.py::test_matcher_cosine_similarity PASSED            [ 66%]
-tests/test_pipeline.py::test_matcher_threshold_evaluation PASSED         [ 75%]
-tests/test_video_pipeline.py::test_gallery_manager_loading_and_search PASSED [ 83%]
-tests/test_video_pipeline.py::test_gallery_cache_saving_and_loading PASSED [ 91%]
-tests/test_video_pipeline.py::test_video_processor_screening PASSED      [100%]
+The API will be available at:
 
-======================= 12 passed in 19.67s =======================
+```text
+http://127.0.0.1:8000
 ```
 
----
+Swagger documentation:
 
-## 6. Running Applications & Tools
+```text
+http://127.0.0.1:8000/docs
+```
 
-### 1. Launch Interactive Streamlit Dashboard
+### Start the Streamlit dashboard
+
 ```bash
 streamlit run app/dashboard.py
 ```
-Opens the web dashboard in your browser (`http://localhost:8501`) featuring:
-- **Missing Persons Gallery**: Browse active entries and register new persons with drag-and-drop portraits.
-- **Photo Screening**: Upload test photos and view side-by-side reference comparisons with confidence gauges.
-- **CCTV Video Analysis**: Upload surveillance video clips, view live detection progress, watch annotated playback with HUD overlays, inspect candidate sighting timelines, and download JSON reports.
-- **Technical Specs**: Threshold calibration guidelines and ethical notices.
 
-### 2. Launch FastAPI REST Backend
-```bash
-uvicorn api.main:app --reload --port 8000
-```
-Interactive Swagger API documentation is available at `http://127.0.0.1:8000/docs`.
+The dashboard will normally be available at:
 
-### 3. CLI CCTV Video Screening Tool
-```bash
-python process_video.py --video data/test_videos/sample_cctv_feed.mp4 --threshold 0.68 --frame-step 5
-```
-
-### 4. CLI Pairwise Image Comparison Tool
-```bash
-python run_demo.py --reference data/registered/person_a_ref.jpg --test data/test_images/person_a_cctv.jpg
+```text
+http://localhost:8501
 ```
 
 ---
 
-## 7. Experimental Threshold Calibration
+## 🔌 API
 
-- **`0.85 - 1.00`**: High confidence match. Extremely strong facial similarity.
-- **`0.68 - 0.84`**: Moderate candidate match. Recommended screening range for human review.
-- **`0.55 - 0.67`**: Borderline candidate. High false-positive rate; requires cautious review.
-- **`< 0.55`**: Non-matching individuals.
+The FastAPI backend exposes endpoints for application health and gallery operations.
+
+Example health endpoint:
+
+```text
+GET /health
+```
+
+Example gallery endpoint:
+
+```text
+GET /api/v1/gallery
+```
+
+Interactive API documentation is available through FastAPI Swagger UI:
+
+```text
+https://locateme-x7h2.onrender.com/docs
+```
+
+---
+
+## 📹 Video Processing
+
+LocateMe supports recorded surveillance footage in formats including:
+
+* `.mp4`
+* `.avi`
+* `.mov`
+
+The video processor can:
+
+1. Read the input video.
+2. Sample frames according to the configured frame step.
+3. Detect faces.
+4. Generate embeddings.
+5. Compare embeddings against the gallery.
+6. Record candidate sighting events.
+7. Generate an annotated output video.
+8. Export a JSON screening report.
+
+Example report information includes:
+
+```text
+Timestamp
+Frame Index
+Candidate Name
+Similarity Score
+Face Detection Confidence
+Confidence Tier
+```
+
+---
+
+## 🧪 Testing
+
+Run the complete test suite with:
+
+```bash
+pytest
+```
+
+Or use the provided Windows batch script:
+
+```powershell
+.\run_all_tests.bat
+```
+
+---
+
+## 🔒 Privacy & Ethical Considerations
+
+LocateMe is designed around a controlled, authorized workflow.
+
+The system should be used only when appropriate authorization exists for the photographs, surveillance footage, and registered-person data being processed.
+
+The matching result is an **algorithmic similarity measurement**, not a verified identity.
+
+Potential sources of error include:
+
+* Lighting conditions
+* Camera angle
+* Image resolution
+* Occlusion
+* Facial expression
+* Age-related appearance changes
+* Detection errors
+* False positives
+* False negatives
+
+Therefore, any potential candidate should undergo appropriate human verification and operational review.
+
+---
+
+## 🎯 Intended Use
+
+LocateMe is intended as a:
+
+* Hackathon prototype
+* Research and experimentation platform
+* Demonstration of computer vision pipelines
+* Human-assisted missing-person screening system
+* Educational AI/ML application
+
+It is **not intended to replace trained investigators, law-enforcement procedures, or formal identity verification systems.**
+
+---
+
+## 📌 Current Deployment
+
+LocateMe is deployed using Render:
+
+```text
+Streamlit Dashboard
+        │
+        ▼
+https://locateme-dashboard.onrender.com
+
+FastAPI Backend
+        │
+        ▼
+https://locateme-x7h2.onrender.com
+
+API Documentation
+        │
+        ▼
+https://locateme-x7h2.onrender.com/docs
+```
+
+---
+
+## 👩‍💻 Author
+
+**Kavinila Prabhakaran**
+
+Computer Science & Engineering — Artificial Intelligence & Machine Learning
+
+GitHub:
+https://github.com/Kavinila28
+
+LinkedIn:
+https://linkedin.com/in/kavinila-prabhakaran-079319332
+
+---
+
+## 📜 License
+
+This project is intended for educational, research, and controlled demonstration purposes.
